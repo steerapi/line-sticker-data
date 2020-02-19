@@ -4,7 +4,12 @@ import os
 from os import walk
 import numpy as np
 import csv
+from skimage.io import imread, imsave
 
+def remove_background(path):
+  im = imread(path)
+  im[im == [[[76,105,113,0]]]] = 0
+  imsave(path, im)
 # list
 def list_available():
     return [
@@ -177,5 +182,7 @@ def get_image_paths(folder='dataofficial', taste=None, character=None, category=
                 zip_ref.extractall(extractLocation)        
         for (dirpath, dirnames, filenames) in walk(extractLocation):
             imagePathsA = [os.path.join(dirpath,f) for f in filenames if '_key@2x.png' in f]
+            for path in imagePathsA:
+                remove_background(path)
             imagePaths.extend(imagePathsA)
     return imagePaths
