@@ -9,11 +9,12 @@ from skimage.io import imread, imsave
 def remove_background(path):
   im = imread(path)
   # im[im == [[[76,105,113,0]]]] = 0
-  if im.shape[2] == 4:
+  if len(im.shape)>2 and im.shape[2] == 4:
     mask = im[:,:,3]==0
     mask = mask[:,:,None]
     im[np.repeat(mask, 4, 2)] = 0
     imsave(path, im)
+  
 
 # list
 def list_available():
