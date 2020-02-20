@@ -154,24 +154,28 @@ def list_available():
 def _process(line, location='./tmp'):
     fileName = line.split('/')[-1]
     productId = fileName.split('.')[0]
-    zipFilePath = os.path.join(location, fileName)
-    if not os.path.exists(zipFilePath):
-        zipFile = requests.get('http://dl.stickershop.line.naver.jp/products/0/0/1/{}/iphone/stickers@2x.zip'.format(productId))
-        with open(zipFilePath, 'wb') as f:
-            f.write(zipFile.content)
-    extractLocation = os.path.join(location, productId)
-    if not os.path.exists(extractLocation):
-        with zipfile.ZipFile(zipFilePath, 'r') as zip_ref:
-            zip_ref.extractall(extractLocation)        
     imagePaths = []
-    for (dirpath, dirnames, filenames) in walk(extractLocation):
-        imagePathsA = [os.path.join(dirpath,f) for f in filenames if '_key@2x.png' in f]
-        for path in imagePathsA:
-            try:
-                remove_background(path)
-            except:
-                pass
-        imagePaths.extend(imagePathsA)
+
+    try:
+      zipFilePath = os.path.join(location, fileName)
+      if not os.path.exists(zipFilePath):
+          zipFile = requests.get('http://dl.stickershop.line.naver.jp/products/0/0/1/{}/iphone/stickers@2x.zip'.format(productId))
+          with open(zipFilePath, 'wb') as f:
+              f.write(zipFile.content)
+      extractLocation = os.path.join(location, productId)
+      if not os.path.exists(extractLocation):
+          with zipfile.ZipFile(zipFilePath, 'r') as zip_ref:
+              zip_ref.extractall(extractLocation)        
+      for (dirpath, dirnames, filenames) in walk(extractLocation):
+          imagePathsA = [os.path.join(dirpath,f) for f in filenames if '_key@2x.png' in f]
+          for path in imagePathsA:
+              try:
+                  remove_background(path)
+              except:
+                  pass
+          imagePaths.extend(imagePathsA)
+    except:
+        pass
     return imagePaths
 
 def get_image_paths(folder='dataofficial', taste=None, character=None, category=None, n=1, location='./tmp', num_workers=4):
