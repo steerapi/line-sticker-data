@@ -15,6 +15,8 @@ def remove_background(path):
   if len(im.shape)>2 and im.shape[2] == 4:
     mask = im[:,:,3:]==0
     im[np.repeat(mask, 4, 2)] = 0
+    tokens = path.split('.')
+    path = ".".join(tokens[:-1] + ['jpg'])
     imsave(path, im)
   
 # list
