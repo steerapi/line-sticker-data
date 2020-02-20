@@ -167,7 +167,10 @@ def _process(line, location='./tmp'):
     for (dirpath, dirnames, filenames) in walk(extractLocation):
         imagePathsA = [os.path.join(dirpath,f) for f in filenames if '_key@2x.png' in f]
         for path in imagePathsA:
-            remove_background(path)
+            try:
+                remove_background(path)
+            except:
+                pass
         imagePaths.extend(imagePathsA)
     return imagePaths
 
