@@ -5,13 +5,13 @@ from os import walk
 import numpy as np
 import csv
 from skimage.io import imread, imsave
+from tqdm import tqdm
 
 def remove_background(path):
   im = imread(path)
   # im[im == [[[76,105,113,0]]]] = 0
   if len(im.shape)>2 and im.shape[2] == 4:
-    mask = im[:,:,3]==0
-    mask = mask[:,:,None]
+    mask = im[:,:,3:]==0
     im[np.repeat(mask, 4, 2)] = 0
     imsave(path, im)
   
@@ -174,7 +174,7 @@ def get_image_paths(folder='dataofficial', taste=None, character=None, category=
     else:
         lines = allLines
     imagePaths = []
-    for line in lines:
+    for line in tqdm(lines):
         fileName = line.split('/')[-1]
         productId = fileName.split('.')[0]
         zipFilePath = os.path.join(location, fileName)
