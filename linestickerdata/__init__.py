@@ -18,7 +18,8 @@ def remove_background(path):
     tokens = path.split('.')
     path = ".".join(tokens[:-1] + ['jpg'])
     imsave(path, im)
-  
+  return path
+
 # list
 def list_available():
     return [
@@ -170,12 +171,14 @@ def _process(line, location='./tmp'):
               zip_ref.extractall(extractLocation)        
       for (dirpath, dirnames, filenames) in walk(extractLocation):
           imagePathsA = [os.path.join(dirpath,f) for f in filenames if '_key@2x.png' in f]
+          paths = []
           for path in imagePathsA:
               try:
-                  remove_background(path)
+                  p = remove_background(path)
+                  paths.append(p)
               except:
                   pass
-          imagePaths.extend(imagePathsA)
+          imagePaths.extend(paths)
     except:
         pass
     return imagePaths
