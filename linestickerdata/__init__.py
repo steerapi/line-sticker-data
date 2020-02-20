@@ -17,7 +17,7 @@ def remove_background(path):
     im[np.repeat(mask, 4, 2)] = 0
     tokens = path.split('.')
     path = ".".join(tokens[:-1] + ['jpg'])
-    imsave(path, im)
+    imsave(path, im[:,:,:3])
   return path
 
 # list
@@ -162,13 +162,13 @@ def _process(line, location='./tmp'):
     try:
       zipFilePath = os.path.join(location, fileName)
       if not os.path.exists(zipFilePath):
-          zipFile = requests.get('http://dl.stickershop.line.naver.jp/products/0/0/1/{}/iphone/stickers@2x.zip'.format(productId))
+          zipFile = requests.get('http://dl.stickershop.line.naver.jp/products/0/0/1/{}/iphone/stickers@2x.zip'.format(productId), timeout=10)
           with open(zipFilePath, 'wb') as f:
               f.write(zipFile.content)
       extractLocation = os.path.join(location, productId)
       if not os.path.exists(extractLocation):
           with zipfile.ZipFile(zipFilePath, 'r') as zip_ref:
-              zip_ref.extractall(extractLocation)        
+              zip_ref.extractall(extractLocation)
       for (dirpath, dirnames, filenames) in walk(extractLocation):
           imagePathsA = [os.path.join(dirpath,f) for f in filenames if '_key@2x.png' in f]
           paths = []
@@ -177,10 +177,11 @@ def _process(line, location='./tmp'):
                   p = remove_background(path)
                   paths.append(p)
               except:
-                  pass
+                  print('error saving image', path)
           imagePaths.extend(paths)
+          break
     except:
-        pass
+        print('error procesing image', line)
     return imagePaths
 
 def get_image_paths(folder='dataofficial', taste=None, character=None, category=None, n=1, location='./tmp', num_workers=4):
@@ -207,10 +208,13 @@ def get_image_paths(folder='dataofficial', taste=None, character=None, category=
     else:
         lines = allLines
     imagePaths = []
-    with Pool(num_workers) as p:
-        print('total', len(lines))
-        for imagePathsA in tqdm(p.imap_unordered(partial(_process, location=location), lines), total=len(lines)):
-            imagePaths.extend(imagePathsA)
+    if num_workers == 1:
+        for line in tqdm(lines):
+            _process(line, location=location)
+    else:
+        with Pool(num_workers) as p:
+            for imagePathsA in tqdm(p.imap(partial(_process, location=location), lines), total=len(lines)):
+                imagePaths.extend(imagePathsA)
     # for line in tqdm(lines): # parallel for here
     #   imagePaths.extend(_process(location, line))
     return imagePaths
