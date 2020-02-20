@@ -6,6 +6,8 @@ import numpy as np
 import csv
 from skimage.io import imread, imsave
 from tqdm import tqdm
+from multiprocessing import Pool
+from functools import partial
 
 def remove_background(path):
   im = imread(path)
@@ -15,7 +17,6 @@ def remove_background(path):
     im[np.repeat(mask, 4, 2)] = 0
     imsave(path, im)
   
-
 # list
 def list_available():
     return [
@@ -150,7 +151,27 @@ def list_available():
             ), 
     ]
 
-def get_image_paths(folder='dataofficial', taste=None, character=None, category=None, n=1, location='./tmp'):
+def _process(line, location='./tmp'):
+    fileName = line.split('/')[-1]
+    productId = fileName.split('.')[0]
+    zipFilePath = os.path.join(location, fileName)
+    if not os.path.exists(zipFilePath):
+        zipFile = requests.get('http://dl.stickershop.line.naver.jp/products/0/0/1/{}/iphone/stickers@2x.zip'.format(productId))
+        with open(zipFilePath, 'wb') as f:
+            f.write(zipFile.content)
+    extractLocation = os.path.join(location, productId)
+    if not os.path.exists(extractLocation):
+        with zipfile.ZipFile(zipFilePath, 'r') as zip_ref:
+            zip_ref.extractall(extractLocation)        
+    imagePaths = []
+    for (dirpath, dirnames, filenames) in walk(extractLocation):
+        imagePathsA = [os.path.join(dirpath,f) for f in filenames if '_key@2x.png' in f]
+        for path in imagePathsA:
+            remove_background(path)
+        imagePaths.extend(imagePathsA)
+    return imagePaths
+
+def get_image_paths(folder='dataofficial', taste=None, character=None, category=None, n=1, location='./tmp', num_workers=4):
     try:
         os.makedirs(location)
     except:
@@ -174,21 +195,11 @@ def get_image_paths(folder='dataofficial', taste=None, character=None, category=
     else:
         lines = allLines
     imagePaths = []
-    for line in tqdm(lines):
-        fileName = line.split('/')[-1]
-        productId = fileName.split('.')[0]
-        zipFilePath = os.path.join(location, fileName)
-        if not os.path.exists(zipFilePath):
-            zipFile = requests.get('http://dl.stickershop.line.naver.jp/products/0/0/1/{}/iphone/stickers@2x.zip'.format(productId))
-            with open(zipFilePath, 'wb') as f:
-                f.write(zipFile.content)
-        extractLocation = os.path.join(location, productId)
-        if not os.path.exists(extractLocation):
-            with zipfile.ZipFile(zipFilePath, 'r') as zip_ref:
-                zip_ref.extractall(extractLocation)        
-        for (dirpath, dirnames, filenames) in walk(extractLocation):
-            imagePathsA = [os.path.join(dirpath,f) for f in filenames if '_key@2x.png' in f]
-            for path in imagePathsA:
-                remove_background(path)
+    with Pool(num_workers) as p:
+        print('total', len(lines))
+        for imagePathsA in tqdm(p.imap_unordered(partial(_process, location=location), lines), total=len(lines)):
             imagePaths.extend(imagePathsA)
+    # for line in tqdm(lines): # parallel for here
+    #   imagePaths.extend(_process(location, line))
     return imagePaths
+
