@@ -2,9 +2,9 @@ from setuptools import setup
 
 setup(
     name='linestickerdata',
-    version='0.0.11',
+    version='0.0.12',
     description='repo to get line sticker data',
-    url='git@github.com:steerapi/line-sticker-data.git',
+    url='https://github.com/steerapi/line-sticker-data',
     author='Surat Teerapittayanon',
     author_email='steerapi@gmail.com',
     license='unlicense',

@@ -154,7 +154,7 @@ def list_available():
             ), 
     ]
 
-def _process(line, location='./tmp'):
+def _process(line, location='./tmp', key=False):
     fileName = line.split('/')[-1]
     productId = fileName.split('.')[0]
     imagePaths = []
@@ -162,7 +162,7 @@ def _process(line, location='./tmp'):
     try:
       zipFilePath = os.path.join(location, fileName)
       if not os.path.exists(zipFilePath):
-          zipFile = requests.get('http://dl.stickershop.line.naver.jp/products/0/0/1/{}/iphone/stickers@2x.zip'.format(productId), timeout=10)
+          zipFile = requests.get('http://dl.stickershop.line.naver.jp/products/0/0/1/{}/android/stickers.zip'.format(productId), timeout=10)
           with open(zipFilePath, 'wb') as f:
               f.write(zipFile.content)
       extractLocation = os.path.join(location, productId)
@@ -170,25 +170,25 @@ def _process(line, location='./tmp'):
           with zipfile.ZipFile(zipFilePath, 'r') as zip_ref:
               zip_ref.extractall(extractLocation)
       for (dirpath, dirnames, filenames) in walk(extractLocation):
-          imagePathsA = [os.path.join(dirpath,f) for f in filenames if '_key@2x.png' in f]
+          if key == True:
+            imagePathsA = [os.path.join(dirpath,f) for f in filenames if '_key.png' in f]
+          else:
+            imagePathsA = [os.path.join(dirpath,f) for f in filenames if 'png' in f and '_key.png' not in f]
           paths = []
           for path in imagePathsA:
-              try:
-                  p = remove_background(path)
-                  paths.append(p)
-              except:
-                  print('error saving image', path)
+             try:
+                 p = remove_background(path)
+                 paths.append(p)
+             except:
+                 print('error saving image', path)
           imagePaths.extend(paths)
           break
     except:
-        print('error procesing image', line)
+        print('error processing image', line)
     return imagePaths
 
-def get_image_paths(folder='dataofficial', taste=None, character=None, category=None, n=1, location='./tmp', num_workers=4):
-    try:
-        os.makedirs(location)
-    except:
-        pass
+def get_image_paths(folder='dataofficial', taste=None, character=None, category=None, n=1, location='./tmp', num_workers=1, seed=None):
+    os.makedirs(location, exist_ok=True)
     listPath = os.path.join(location, '{}_list.txt'.format(folder))
     if not os.path.exists(listPath):
         mylist = requests.get('https://s3.peer-ai.com/{}/list.txt'.format(folder))
@@ -204,13 +204,14 @@ def get_image_paths(folder='dataofficial', taste=None, character=None, category=
     if character is not None:
         allLines = [l for l in allLines if character in l]
     if n >= 1:
+        np.random.seed(seed)
         lines = np.random.choice(allLines, n)
     else:
         lines = allLines
     imagePaths = []
     if num_workers == 1:
         for line in tqdm(lines):
-            _process(line, location=location)
+            imagePaths.extend(_process(line, location=location))
     else:
         with Pool(num_workers) as p:
             for imagePathsA in tqdm(p.imap(partial(_process, location=location), lines), total=len(lines)):
